@@ -1,0 +1,331 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-29",
+  "description": "Database of known Bluetooth-enabled recording devices",
+  "devices": [
+    {
+      "id": "meta_rayban_stories",
+      "name": "Meta Ray-Ban Stories",
+      "manufacturer": "Meta/Facebook",
+      "type": "smart_glasses",
+      "has_camera": true,
+      "has_microphone": true,
+      "threat_level": "high",
+      "identifiers": {
+        "name_patterns": [
+          "Ray-Ban Stories",
+          "Ray-Ban Meta",
+          "RayBan Stories",
+          "RB Stories",
+          "Meta Smart"
+        ],
+        "manufacturer_prefixes": [
+          "E4:F0:42",
+          "9C:B6:D0",
+          "64:A2:F9"
+        ],
+        "service_uuids": []
+      },
+      "notes": "Meta Ray-Ban smart glasses with built-in camera and microphone"
+    },
+    {
+      "id": "meta_rayban_gen2",
+      "name": "Meta Ray-Ban (Gen 2)",
+      "manufacturer": "Meta",
+      "type": "smart_glasses",
+      "has_camera": true,
+      "has_microphone": true,
+      "threat_level": "high",
+      "identifiers": {
+        "name_patterns": [
+          "Ray-Ban | Meta",
+          "Ray-Ban Meta",
+          "Meta Ray-Ban"
+        ],
+        "manufacturer_prefixes": [],
+        "service_uuids": []
+      },
+      "notes": "Second generation Meta smart glasses with improved camera"
+    },
+    {
+      "id": "snapchat_spectacles",
+      "name": "Snapchat Spectacles",
+      "manufacturer": "Snap Inc.",
+      "type": "smart_glasses",
+      "has_camera": true,
+      "has_microphone": true,
+      "threat_level": "high",
+      "identifiers": {
+        "name_patterns": [
+          "Spectacles",
+          "Snap Spectacles",
+          "SPECTACLES"
+        ],
+        "manufacturer_prefixes": [],
+        "service_uuids": []
+      },
+      "notes": "Snapchat smart glasses with camera for recording"
+    },
+    {
+      "id": "amazon_echo_frames",
+      "name": "Amazon Echo Frames",
+      "manufacturer": "Amazon",
+      "type": "smart_glasses",
+      "has_camera": false,
+      "has_microphone": true,
+      "threat_level": "medium",
+      "identifiers": {
+        "name_patterns": [
+          "Echo Frames",
+          "Amazon Frames",
+          "Alexa Frames"
+        ],
+        "manufacturer_prefixes": [
+          "FC:65:DE",
+          "68:54:FD"
+        ],
+        "service_uuids": []
+      },
+      "notes": "Amazon smart glasses with Alexa - microphone only, no camera"
+    },
+    {
+      "id": "bose_frames",
+      "name": "Bose Frames",
+      "manufacturer": "Bose",
+      "type": "smart_glasses",
+      "has_camera": false,
+      "has_microphone": true,
+      "threat_level": "low",
+      "identifiers": {
+        "name_patterns": [
+          "Bose Frames",
+          "BOSE FRAMES"
+        ],
+        "manufacturer_prefixes": [
+          "04:52:C7",
+          "28:11:A5"
+        ],
+        "service_uuids": []
+      },
+      "notes": "Bose audio sunglasses - microphone for calls, no camera"
+    },
+    {
+      "id": "google_glass",
+      "name": "Google Glass",
+      "manufacturer": "Google",
+      "type": "smart_glasses",
+      "has_camera": true,
+      "has_microphone": true,
+      "threat_level": "high",
+      "identifiers": {
+        "name_patterns": [
+          "Glass",
+          "Google Glass",
+          "Glass Enterprise"
+        ],
+        "manufacturer_prefixes": [
+          "F8:8F:CA",
+          "54:60:09"
+        ],
+        "service_uuids": []
+      },
+      "notes": "Google Glass smart glasses with camera"
+    },
+    {
+      "id": "vuzix_blade",
+      "name": "Vuzix Blade",
+      "manufacturer": "Vuzix",
+      "type": "smart_glasses",
+      "has_camera": true,
+      "has_microphone": true,
+      "threat_level": "high",
+      "identifiers": {
+        "name_patterns": [
+          "Vuzix",
+          "Blade",
+          "VUZIX"
+        ],
+        "manufacturer_prefixes": [],
+        "service_uuids": []
+      },
+      "notes": "Vuzix Blade AR smart glasses with camera"
+    },
+    {
+      "id": "tcl_rayneo",
+      "name": "TCL RayNeo",
+      "manufacturer": "TCL",
+      "type": "smart_glasses",
+      "has_camera": true,
+      "has_microphone": true,
+      "threat_level": "high",
+      "identifiers": {
+        "name_patterns": [
+          "RayNeo",
+          "TCL Smart",
+          "RAYNEO"
+        ],
+        "manufacturer_prefixes": [],
+        "service_uuids": []
+      },
+      "notes": "TCL RayNeo AR glasses"
+    },
+    {
+      "id": "xiaomi_smart_glasses",
+      "name": "Xiaomi Smart Glasses",
+      "manufacturer": "Xiaomi",
+      "type": "smart_glasses",
+      "has_camera": true,
+      "has_microphone": true,
+      "threat_level": "high",
+      "identifiers": {
+        "name_patterns": [
+          "Xiaomi Glass",
+          "Mi Glass",
+          "XIAOMI"
+        ],
+        "manufacturer_prefixes": [
+          "64:CC:2E",
+          "78:11:DC"
+        ],
+        "service_uuids": []
+      },
+      "notes": "Xiaomi smart glasses concept with camera"
+    },
+    {
+      "id": "insta360_go",
+      "name": "Insta360 GO",
+      "manufacturer": "Insta360",
+      "type": "wearable_camera",
+      "has_camera": true,
+      "has_microphone": true,
+      "threat_level": "high",
+      "identifiers": {
+        "name_patterns": [
+          "Insta360",
+          "GO 3",
+          "GO 2",
+          "INSTA360"
+        ],
+        "manufacturer_prefixes": [],
+        "service_uuids": []
+      },
+      "notes": "Tiny wearable/mountable camera"
+    },
+    {
+      "id": "gopro",
+      "name": "GoPro Camera",
+      "manufacturer": "GoPro",
+      "type": "action_camera",
+      "has_camera": true,
+      "has_microphone": true,
+      "threat_level": "medium",
+      "identifiers": {
+        "name_patterns": [
+          "GoPro",
+          "HERO",
+          "GP:"
+        ],
+        "manufacturer_prefixes": [
+          "D4:D9:19",
+          "24:A0:74"
+        ],
+        "service_uuids": [
+          "0000fea6-0000-1000-8000-00805f9b34fb"
+        ]
+      },
+      "notes": "GoPro action cameras"
+    },
+    {
+      "id": "dji_action",
+      "name": "DJI Action Camera",
+      "manufacturer": "DJI",
+      "type": "action_camera",
+      "has_camera": true,
+      "has_microphone": true,
+      "threat_level": "medium",
+      "identifiers": {
+        "name_patterns": [
+          "DJI",
+          "Osmo",
+          "Action"
+        ],
+        "manufacturer_prefixes": [
+          "60:60:1F"
+        ],
+        "service_uuids": []
+      },
+      "notes": "DJI action cameras and Osmo devices"
+    },
+    {
+      "id": "ring_doorbell",
+      "name": "Ring Doorbell/Camera",
+      "manufacturer": "Ring/Amazon",
+      "type": "security_camera",
+      "has_camera": true,
+      "has_microphone": true,
+      "threat_level": "low",
+      "identifiers": {
+        "name_patterns": [
+          "Ring",
+          "Ring-"
+        ],
+        "manufacturer_prefixes": [],
+        "service_uuids": []
+      },
+      "notes": "Ring doorbell and security cameras"
+    },
+    {
+      "id": "brilliant_monocle",
+      "name": "Brilliant Monocle",
+      "manufacturer": "Brilliant Labs",
+      "type": "smart_glasses",
+      "has_camera": true,
+      "has_microphone": true,
+      "threat_level": "high",
+      "identifiers": {
+        "name_patterns": [
+          "Monocle",
+          "Brilliant"
+        ],
+        "manufacturer_prefixes": [],
+        "service_uuids": []
+      },
+      "notes": "AR monocle with camera capability"
+    },
+    {
+      "id": "even_realities_g1",
+      "name": "Even Realities G1",
+      "manufacturer": "Even Realities",
+      "type": "smart_glasses",
+      "has_camera": false,
+      "has_microphone": true,
+      "threat_level": "medium",
+      "identifiers": {
+        "name_patterns": [
+          "Even Realities",
+          "G1"
+        ],
+        "manufacturer_prefixes": [],
+        "service_uuids": []
+      },
+      "notes": "Even Realities G1 AI glasses - no camera, has microphone"
+    }
+  ],
+  "threat_levels": {
+    "high": {
+      "description": "Device has camera capability - can record video",
+      "color": "#dc3545",
+      "alert": true
+    },
+    "medium": {
+      "description": "Device has microphone only - can record audio",
+      "color": "#ffc107",
+      "alert": true
+    },
+    "low": {
+      "description": "Minimal recording capability",
+      "color": "#28a745",
+      "alert": false
+    }
+  }
+}

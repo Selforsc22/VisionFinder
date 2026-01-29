@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bluetooth Device Scanner - Recording Device Detection</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Bluetooth Recording Device Scanner</h1>
+            <p class="subtitle">Detect nearby video/audio recording devices</p>
+        </header>
+
+        <!-- Alert Banner -->
+        <div id="alert-banner" class="alert-banner hidden">
+            <span class="alert-icon">&#9888;</span>
+            <span id="alert-message">Recording device detected nearby!</span>
+            <button id="dismiss-alert" onclick="dismissAlert()">Dismiss</button>
+        </div>
+
+        <!-- Status Panel -->
+        <div class="status-panel">
+            <div class="status-indicator" id="status-indicator">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="status-text">Disconnected</span>
+            </div>
+            <div class="controls">
+                <button id="start-btn" class="btn btn-primary" onclick="startScan()">
+                    Start Scanning
+                </button>
+                <button id="stop-btn" class="btn btn-secondary" onclick="stopScan()" disabled>
+                    Stop Scanning
+                </button>
+                <button id="clear-btn" class="btn btn-outline" onclick="clearDevices()">
+                    Clear Devices
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-devices">0</div>
+                <div class="stat-label">Total Devices</div>
+            </div>
+            <div class="stat-card threat">
+                <div class="stat-value" id="threat-count">0</div>
+                <div class="stat-label">Potential Threats</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="high-threat-count">0</div>
+                <div class="stat-label">High Risk (Camera)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="medium-threat-count">0</div>
+                <div class="stat-label">Medium Risk (Mic Only)</div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="main-grid">
+            <!-- Threats Section -->
+            <section class="panel threats-panel">
+                <h2>
+                    <span class="panel-icon">&#128680;</span>
+                    Detected Threats
+                </h2>
+                <div id="threats-list" class="device-list">
+                    <div class="empty-state">No threats detected</div>
+                </div>
+            </section>
+
+            <!-- All Devices Section -->
+            <section class="panel devices-panel">
+                <h2>
+                    <span class="panel-icon">&#128225;</span>
+                    All Nearby Devices
+                </h2>
+                <div id="devices-list" class="device-list">
+                    <div class="empty-state">No devices detected</div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Alert History -->
+        <section class="panel">
+            <h2>
+                <span class="panel-icon">&#128276;</span>
+                Alert History
+            </h2>
+            <div id="alerts-list" class="alerts-list">
+                <div class="empty-state">No alerts recorded</div>
+            </div>
+        </section>
+
+        <!-- Known Devices Reference -->
+        <section class="panel collapsible">
+            <h2 onclick="toggleSection('signatures-content')">
+                <span class="panel-icon">&#128218;</span>
+                Known Recording Devices Database
+                <span class="toggle-icon">&#9660;</span>
+            </h2>
+            <div id="signatures-content" class="collapsed">
+                <div id="signatures-list" class="signatures-grid">
+                    Loading...
+                </div>
+            </div>
+        </section>
+
+        <!-- Log Import Section -->
+        <section class="panel collapsible">
+            <h2 onclick="toggleSection('import-content')">
+                <span class="panel-icon">&#128194;</span>
+                Import Log Files
+                <span class="toggle-icon">&#9660;</span>
+            </h2>
+            <div id="import-content" class="collapsed">
+                <div class="import-section">
+                    <p>Import logs from external Bluetooth scanning tools:</p>
+                    <div class="file-upload">
+                        <input type="file" id="log-file-input" accept=".json,.csv,.txt" onchange="handleFileImport(event)">
+                        <label for="log-file-input" class="btn btn-outline">Choose File</label>
+                        <span id="file-name">No file selected</span>
+                    </div>
+                    <div class="import-formats">
+                        <h4>Supported Formats:</h4>
+                        <ul>
+                            <li><strong>JSON:</strong> Standard Bluetooth scan exports</li>
+                            <li><strong>CSV:</strong> Comma-separated device lists</li>
+                            <li><strong>TXT:</strong> Line-based device logs</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p>Bluetooth Recording Device Scanner v1.0</p>
+            <p class="disclaimer">This tool is for privacy awareness purposes. Always respect others' privacy and local laws.</p>
+        </footer>
+    </div>
+
+    <!-- Audio Alert (optional) -->
+    <audio id="alert-sound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2Onp6XiHdwa3B8ipyknJGAdW1scYGRn6KdkYB2bm5zgI+eoJqPf3Rub3WDk5+gnZKDd3BwdoKQnZ6bk4V5cnJ4hJOdnpqShXl0c3mFk52emZKFeHR0eoaUnp6ZkoZ4dHR6hpSenpqShnl1dXuHlZ6emZKGeHV1e4eVnp6ZkoZ4dXV7h5WenpqSh3l2dnuHlZ6emZKHeHZ2e4eVnp6ZkoZ4dnZ7h5WenpqSh3l2dnuHlZ6empOHeHZ2fIiWnpyZk4d5d3d8iJaenJmTh3l3d3yIlp6cmZOHeXd3fIiWnpyZk4d5d3d8iJadnJmTh3l3eH2Jlp2cmZOHeXd4fYmWnZyZk4d5d3h9iZadnJmTh3l4eH2Jlp2cmZSHeXh4fYmWnZyZlIh6eHh9iZadnJqUiHp4eH6Klp2cmpSIenh5fomWnZyalIh6eXl+ipacnJqUiHp5eX6KlpycmpSIenl5fomWnJyalIh6eXl+ipacnJqUiHp5en+KlpyampSIe3l6f4qWm5qalIh7enp/ipabmpmUiXt6en+Klpuam5SJe3p6f4qVm5qblIl7enp/ipWbmpuViXt7e3+KlZuam5WJe3t7f4qVm5qblYp7e3uAipWamZuViXt7e4CKlZqZm5WKfHt7gIqVmpmblYp8e3uAipWamZuVinx8fICKlZqZmpWKfHx8gIqVmpmalnx8fICKlJmZmpWKfHx8gIqUmZmalop8fHyAipSZmZaWinx8fICKlJmZlpaKfHx8gIqUmZmWlop8fH2AipSZmZaWinx9fYCKlJmZlpaKfH19gIqUmJiWlop8fX2AipaVlJKGfHx8fIOQlpSNhX57e3t/ho+QjYV9fHt7e4GGio2IhH18e3t8goWIiIR9fXx8fH+EhoaFf318fHx9goSFhIF/fXx8fX6Bg4OBgH5+fH1+f4GCgYB/fn59fn+AgYGAgH9+fn5/gICAgIB/f39/f4CAgICAgH9/f3+AgICAgICAf39/gICAgICAgIB/f4CAgICAgICAgICAgICAgICAgICAgICAgICAgICA" type="audio/wav">
+    </audio>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
