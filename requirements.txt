@@ -1,0 +1,7 @@
+# Bluetooth Scanner Dependencies
+bleak>=0.21.0          # BLE scanning library (cross-platform)
+flask>=3.0.0           # Web framework
+flask-socketio>=5.3.0  # Real-time WebSocket support
+python-socketio>=5.10.0
+eventlet>=0.34.0       # Async support for Flask-SocketIO
+requests>=2.31.0       # HTTP requests for OUI lookups
