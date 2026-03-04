@@ -38,6 +38,7 @@ class DeviceSignature:
     name_patterns: list[str] = field(default_factory=list)
     manufacturer_prefixes: list[str] = field(default_factory=list)
     service_uuids: list[str] = field(default_factory=list)
+    ble_manufacturer_ids: list[int] = field(default_factory=list)  # BLE company IDs (e.g., 0x0969 for Woan/Meta)
     notes: str = ""
 
 
@@ -57,14 +58,19 @@ class DetectedDevice:
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization"""
+        # Format manufacturer IDs for display (e.g., "0x0969")
+        mfr_ids_hex = [f"0x{k:04X}" for k in self.manufacturer_data.keys()] if self.manufacturer_data else []
+
         return {
             "address": self.address,
             "name": self.name or "Unknown",
             "rssi": self.rssi,
+            "rssi_distance": self._estimate_distance(self.rssi),
             "first_seen": self.first_seen.isoformat(),
             "last_seen": self.last_seen.isoformat(),
             "manufacturer_data": {str(k): v.hex() if isinstance(v, bytes) else v
                                   for k, v in self.manufacturer_data.items()},
+            "manufacturer_ids_hex": mfr_ids_hex,
             "service_uuids": self.service_uuids,
             "is_potential_threat": self.is_potential_threat,
             "threat_level": self.threat_level,
@@ -73,6 +79,20 @@ class DetectedDevice:
             "has_camera": self.matched_signature.has_camera if self.matched_signature else None,
             "has_microphone": self.matched_signature.has_microphone if self.matched_signature else None,
         }
+
+    @staticmethod
+    def _estimate_distance(rssi: int) -> str:
+        """Estimate distance based on RSSI (rough approximation)"""
+        if rssi >= -50:
+            return "Very close (<1m)"
+        elif rssi >= -60:
+            return "Close (1-3m)"
+        elif rssi >= -70:
+            return "Nearby (3-7m)"
+        elif rssi >= -80:
+            return "Medium (7-15m)"
+        else:
+            return "Far (>15m)"
 
 
 class RecordingDeviceDatabase:
@@ -107,6 +127,7 @@ class RecordingDeviceDatabase:
                     name_patterns=identifiers.get("name_patterns", []),
                     manufacturer_prefixes=identifiers.get("manufacturer_prefixes", []),
                     service_uuids=identifiers.get("service_uuids", []),
+                    ble_manufacturer_ids=identifiers.get("ble_manufacturer_ids", []),
                     notes=device.get("notes", "")
                 )
                 self.signatures.append(signature)
@@ -118,15 +139,31 @@ class RecordingDeviceDatabase:
             logger.error(f"Error parsing device database: {e}")
 
     def match_device(self, name: Optional[str], address: str,
-                     service_uuids: list[str]) -> Optional[DeviceSignature]:
+                     service_uuids: list[str],
+                     manufacturer_data: Optional[dict] = None) -> Optional[DeviceSignature]:
         """
         Try to match a detected device against known signatures
         Returns the matching signature or None
+
+        Detection priority:
+        1. BLE Manufacturer ID (most reliable - e.g., 0x0969 for Meta/Woan glasses)
+        2. MAC address prefix (OUI)
+        3. Device name patterns
+        4. Service UUIDs
         """
         address_upper = address.upper()
+        manufacturer_data = manufacturer_data or {}
 
         for sig in self.signatures:
-            # Check MAC address prefix
+            # Check BLE manufacturer ID (most reliable method)
+            # This catches Meta glasses even when unpaired (appear as "Woan")
+            if sig.ble_manufacturer_ids and manufacturer_data:
+                for mfr_id in manufacturer_data.keys():
+                    if mfr_id in sig.ble_manufacturer_ids:
+                        logger.debug(f"Matched device {address} by BLE manufacturer ID 0x{mfr_id:04X}")
+                        return sig
+
+            # Check MAC address prefix (OUI)
             for prefix in sig.manufacturer_prefixes:
                 if address_upper.startswith(prefix.upper()):
                     logger.debug(f"Matched device {address} by MAC prefix {prefix}")
@@ -152,13 +189,18 @@ class RecordingDeviceDatabase:
 class BluetoothScanner:
     """Main Bluetooth scanner class"""
 
-    def __init__(self, device_db: Optional[RecordingDeviceDatabase] = None):
+    # Default RSSI threshold for threat alerts (-75 dBm ~ 10-15m outdoors, 3-10m indoors)
+    DEFAULT_RSSI_THRESHOLD = -75
+
+    def __init__(self, device_db: Optional[RecordingDeviceDatabase] = None,
+                 rssi_threshold: int = DEFAULT_RSSI_THRESHOLD):
         self.device_db = device_db or RecordingDeviceDatabase()
         self.detected_devices: dict[str, DetectedDevice] = {}
         self.scanning = False
         self._scan_task: Optional[asyncio.Task] = None
         self.on_device_detected: Optional[Callable[[DetectedDevice], None]] = None
         self.on_threat_detected: Optional[Callable[[DetectedDevice], None]] = None
+        self.rssi_threshold = rssi_threshold  # Only alert for devices stronger than this
 
         if not BLEAK_AVAILABLE:
             logger.warning("Bleak library not available - running in simulation mode")
@@ -182,11 +224,23 @@ class BluetoothScanner:
         if address in self.detected_devices:
             existing = self.detected_devices[address]
             existing.last_seen = now
+            old_rssi = existing.rssi
             existing.rssi = advertisement_data.rssi if advertisement_data else -100
+
+            # Re-check for threats if name changed or device moved into alert range
             if device.name and device.name != existing.name:
                 existing.name = device.name
-                # Re-check for threats if name changed
-                self._check_for_threat(existing, service_uuids)
+                if self._check_for_threat(existing, service_uuids):
+                    if self.on_threat_detected:
+                        self.on_threat_detected(existing)
+
+            # Alert if previously-detected threat moved into range
+            elif (existing.is_potential_threat and
+                  old_rssi < self.rssi_threshold and
+                  existing.rssi >= self.rssi_threshold):
+                logger.warning(f"Threat moved into range: {existing.matched_signature.name} (rssi: {old_rssi} -> {existing.rssi})")
+                if self.on_threat_detected:
+                    self.on_threat_detected(existing)
         else:
             # New device
             detected = DetectedDevice(
@@ -199,28 +253,51 @@ class BluetoothScanner:
                 service_uuids=service_uuids,
             )
 
-            self._check_for_threat(detected, service_uuids)
+            threat_in_range = self._check_for_threat(detected, service_uuids)
             self.detected_devices[address] = detected
 
             if self.on_device_detected:
                 self.on_device_detected(detected)
 
-            if detected.is_potential_threat and self.on_threat_detected:
+            if threat_in_range and self.on_threat_detected:
                 self.on_threat_detected(detected)
 
-    def _check_for_threat(self, device: DetectedDevice, service_uuids: list[str]):
-        """Check if a device matches known recording device signatures"""
+    def _check_for_threat(self, device: DetectedDevice, service_uuids: list[str]) -> bool:
+        """
+        Check if a device matches known recording device signatures.
+        Returns True if a threat was detected within RSSI threshold.
+        """
         match = self.device_db.match_device(
             device.name,
             device.address,
-            service_uuids
+            service_uuids,
+            device.manufacturer_data
         )
 
         if match:
             device.matched_signature = match
             device.is_potential_threat = True
             device.threat_level = match.threat_level
-            logger.warning(f"THREAT DETECTED: {match.name} at {device.address}")
+
+            # Log detection method for debugging
+            mfr_ids = [f"0x{k:04X}" for k in device.manufacturer_data.keys()] if device.manufacturer_data else []
+            distance = device._estimate_distance(device.rssi)
+
+            # Only trigger high-priority alert if within RSSI threshold
+            if device.rssi >= self.rssi_threshold:
+                logger.warning(
+                    f"THREAT DETECTED: {match.name} at {device.address} "
+                    f"(name='{device.name}', mfr_ids={mfr_ids}, rssi={device.rssi}dBm, distance={distance})"
+                )
+                return True
+            else:
+                logger.info(
+                    f"Threat detected but distant: {match.name} at {device.address} "
+                    f"(rssi={device.rssi}dBm < threshold={self.rssi_threshold}dBm)"
+                )
+                return False
+
+        return False
 
     async def scan_once(self, timeout: float = 10.0) -> list[DetectedDevice]:
         """Perform a single scan and return detected devices"""
@@ -284,16 +361,22 @@ class BluetoothScanner:
         """Simulated continuous scanning for testing without Bluetooth hardware"""
         import random
 
+        # Simulated devices: (address, name, rssi, manufacturer_data)
+        # 0x0969 (2409) = Woan Technology (Meta glasses manufacturer)
+        # 0x004C (76) = Apple
+        # 0x0075 (117) = Samsung
         simulated_devices = [
-            ("AA:BB:CC:DD:EE:01", "iPhone", -65),
-            ("AA:BB:CC:DD:EE:02", "Galaxy Watch", -70),
-            ("AA:BB:CC:DD:EE:03", "AirPods Pro", -55),
-            ("E4:F0:42:11:22:33", "Ray-Ban | Meta", -45),  # Simulated threat
-            ("AA:BB:CC:DD:EE:04", "Fitbit", -80),
-            ("AA:BB:CC:DD:EE:05", "Unknown Device", -90),
-            ("AA:BB:CC:DD:EE:06", "Spectacles", -60),  # Simulated threat
-            ("AA:BB:CC:DD:EE:07", "MacBook Pro", -75),
-            ("D4:D9:19:AA:BB:CC", "GoPro HERO12", -50),  # Simulated threat
+            ("AA:BB:CC:DD:EE:01", "iPhone", -65, {76: b'\x10\x05\x03'}),
+            ("AA:BB:CC:DD:EE:02", "Galaxy Watch", -70, {117: b'\x42\x04\x01'}),
+            ("AA:BB:CC:DD:EE:03", "AirPods Pro", -55, {76: b'\x07\x19\x01'}),
+            ("E4:F0:42:11:22:33", "Ray-Ban | Meta", -45, {2409: b'\x01\x00\x00'}),  # Meta glasses - paired name
+            ("AA:BB:CC:DD:EE:08", "Woan", -42, {2409: b'\x01\x00\x00'}),  # Meta glasses - unpaired (shows as Woan)
+            ("AA:BB:CC:DD:EE:04", "Fitbit", -80, {}),
+            ("AA:BB:CC:DD:EE:05", "Unknown Device", -90, {}),
+            ("AA:BB:CC:DD:EE:06", "Spectacles", -60, {}),  # Snapchat Spectacles
+            ("AA:BB:CC:DD:EE:07", "MacBook Pro", -75, {76: b'\x10\x06\x11'}),
+            ("D4:D9:19:AA:BB:CC", "GoPro HERO12", -50, {}),  # GoPro - matched by MAC prefix
+            ("AA:BB:CC:DD:EE:09", "Oakley", -48, {2409: b'\x02\x00\x00'}),  # Oakley Meta glasses
         ]
 
         logger.info("Starting simulated continuous scan")
@@ -301,7 +384,7 @@ class BluetoothScanner:
         while self.scanning:
             # Randomly "discover" devices
             device_info = random.choice(simulated_devices)
-            address, name, base_rssi = device_info
+            address, name, base_rssi, mfr_data = device_info
 
             now = datetime.now()
             rssi = base_rssi + random.randint(-10, 10)
@@ -316,6 +399,7 @@ class BluetoothScanner:
                     rssi=rssi,
                     first_seen=now,
                     last_seen=now,
+                    manufacturer_data=mfr_data,
                 )
                 self._check_for_threat(detected, [])
                 self.detected_devices[address] = detected
@@ -334,6 +418,7 @@ class BluetoothScanner:
     def _get_simulated_devices(self) -> list[DetectedDevice]:
         """Return simulated devices for testing"""
         now = datetime.now()
+        # 0x0969 (2409) = Woan Technology (Meta glasses manufacturer)
         simulated = [
             DetectedDevice(
                 address="AA:BB:CC:DD:EE:01",
@@ -341,6 +426,7 @@ class BluetoothScanner:
                 rssi=-65,
                 first_seen=now,
                 last_seen=now,
+                manufacturer_data={76: b'\x10\x05\x03'},  # Apple
             ),
             DetectedDevice(
                 address="E4:F0:42:11:22:33",
@@ -348,6 +434,15 @@ class BluetoothScanner:
                 rssi=-45,
                 first_seen=now,
                 last_seen=now,
+                manufacturer_data={2409: b'\x01\x00\x00'},  # Woan/Meta
+            ),
+            DetectedDevice(
+                address="AA:BB:CC:DD:EE:08",
+                name="Woan",  # Unpaired Meta glasses show as "Woan"
+                rssi=-50,
+                first_seen=now,
+                last_seen=now,
+                manufacturer_data={2409: b'\x01\x00\x00'},  # Woan/Meta
             ),
         ]
 

@@ -1,12 +1,13 @@
 {
-  "version": "1.0.0",
-  "last_updated": "2026-01-29",
+  "version": "1.1.0",
+  "last_updated": "2026-03-04",
   "description": "Database of known Bluetooth-enabled recording devices",
+  "notes": "BLE manufacturer ID 0x0969 (2409) = Woan Technology Shenzhen, which manufactures Meta smart glasses",
   "devices": [
     {
-      "id": "meta_rayban_stories",
-      "name": "Meta Ray-Ban Stories",
-      "manufacturer": "Meta/Facebook",
+      "id": "meta_smart_glasses",
+      "name": "Meta Smart Glasses (Ray-Ban/Oakley)",
+      "manufacturer": "Meta/Luxottica/Woan Technology",
       "type": "smart_glasses",
       "has_camera": true,
       "has_microphone": true,
@@ -15,37 +16,34 @@
         "name_patterns": [
           "Ray-Ban Stories",
           "Ray-Ban Meta",
+          "Ray-Ban | Meta",
           "RayBan Stories",
           "RB Stories",
-          "Meta Smart"
+          "Meta Smart",
+          "Meta Ray-Ban",
+          "Woan",
+          "Oakley"
         ],
         "manufacturer_prefixes": [
           "E4:F0:42",
           "9C:B6:D0",
           "64:A2:F9"
         ],
-        "service_uuids": []
-      },
-      "notes": "Meta Ray-Ban smart glasses with built-in camera and microphone"
-    },
-    {
-      "id": "meta_rayban_gen2",
-      "name": "Meta Ray-Ban (Gen 2)",
-      "manufacturer": "Meta",
-      "type": "smart_glasses",
-      "has_camera": true,
-      "has_microphone": true,
-      "threat_level": "high",
-      "identifiers": {
-        "name_patterns": [
-          "Ray-Ban | Meta",
-          "Ray-Ban Meta",
-          "Meta Ray-Ban"
+        "ble_manufacturer_ids": [
+          427,
+          1422,
+          2409,
+          3411
         ],
-        "manufacturer_prefixes": [],
+        "ble_manufacturer_ids_info": {
+          "427": "0x01AB - Meta Platforms, Inc. (formerly Facebook)",
+          "1422": "0x058E - Meta Platforms Technologies, LLC",
+          "2409": "0x0969 - Woan Technology Shenzhen (glasses OEM)",
+          "3411": "0x0D53 - Luxottica Group S.p.A (Ray-Ban parent company)"
+        },
         "service_uuids": []
       },
-      "notes": "Second generation Meta smart glasses with improved camera"
+      "notes": "Meta smart glasses (Ray-Ban and Oakley brands). Detectable via multiple BLE manufacturer IDs. Warning: May also match Meta VR headsets which share manufacturer codes. When unpaired, may appear as 'Woan' in BLE scans."
     },
     {
       "id": "snapchat_spectacles",
@@ -62,6 +60,7 @@
           "SPECTACLES"
         ],
         "manufacturer_prefixes": [],
+        "ble_manufacturer_ids": [],
         "service_uuids": []
       },
       "notes": "Snapchat smart glasses with camera for recording"

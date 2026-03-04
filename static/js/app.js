@@ -233,6 +233,15 @@ function createDeviceCard(device, isThreat = false) {
         `;
     }
 
+    // Show manufacturer IDs if present (key for Meta glasses detection)
+    let mfrInfo = '';
+    if (device.manufacturer_ids_hex && device.manufacturer_ids_hex.length > 0) {
+        mfrInfo = `<span title="BLE Manufacturer ID">MFR: ${device.manufacturer_ids_hex.join(', ')}</span>`;
+    }
+
+    // Show estimated distance
+    const distance = device.rssi_distance || '';
+
     return `
         <div class="device-card ${threatClass}" data-address="${device.address}">
             <div class="device-header">
@@ -246,7 +255,9 @@ function createDeviceCard(device, isThreat = false) {
             </div>
             <div class="device-details">
                 <span>${rssiIndicator} ${device.rssi} dBm</span>
+                <span>${distance}</span>
                 <span>Last seen: ${formatTime(device.last_seen)}</span>
+                ${mfrInfo}
             </div>
             ${matchInfo}
         </div>
