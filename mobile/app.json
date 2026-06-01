@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "VisionFinder",
+    "slug": "visionfinder",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f0f1a"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.visionfinder.app",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "VisionFinder needs Bluetooth access to scan for nearby recording devices like smart glasses.",
+        "NSBluetoothPeripheralUsageDescription": "VisionFinder needs Bluetooth access to detect recording devices.",
+        "UIBackgroundModes": ["bluetooth-central"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f0f1a"
+      },
+      "package": "com.visionfinder.app",
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "plugins": [
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": true,
+          "modes": ["central"]
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./assets/alert.wav"]
+        }
+      ]
+    ]
+  }
+}

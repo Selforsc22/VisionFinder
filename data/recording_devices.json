@@ -1,12 +1,14 @@
 {
-  "version": "1.0.0",
-  "last_updated": "2026-01-29",
+  "version": "2.0.0",
+  "last_updated": "2026-06-01",
   "description": "Database of known Bluetooth-enabled recording devices",
+  "source": "Based on research from Nearby Glasses app, Bluehood, and Bluetooth SIG assigned numbers",
+  "notes": "BLE manufacturer IDs are assigned by Bluetooth SIG and are mandatory/standardized. They cannot be spoofed without breaking Bluetooth compliance.",
   "devices": [
     {
-      "id": "meta_rayban_stories",
-      "name": "Meta Ray-Ban Stories",
-      "manufacturer": "Meta/Facebook",
+      "id": "meta_smart_glasses",
+      "name": "Meta Smart Glasses (Ray-Ban/Oakley)",
+      "manufacturer": "Meta/Luxottica",
       "type": "smart_glasses",
       "has_camera": true,
       "has_microphone": true,
@@ -15,37 +17,32 @@
         "name_patterns": [
           "Ray-Ban Stories",
           "Ray-Ban Meta",
+          "Ray-Ban | Meta",
           "RayBan Stories",
           "RB Stories",
-          "Meta Smart"
+          "Meta Smart",
+          "Meta Ray-Ban",
+          "Oakley",
+          "Wayfarer"
         ],
         "manufacturer_prefixes": [
           "E4:F0:42",
           "9C:B6:D0",
-          "64:A2:F9"
+          "64:A2:F9",
+          "3C:28:6D"
         ],
-        "service_uuids": []
+        "ble_manufacturer_ids": [427, 1422, 3411],
+        "ble_manufacturer_ids_info": {
+          "427": "0x01AB - Meta Platforms, Inc. (primary identifier)",
+          "1422": "0x058E - Meta Platforms Technologies, LLC",
+          "3411": "0x0D53 - Luxottica Group S.p.A (Ray-Ban parent company)"
+        },
+        "service_uuids": [
+          "0000fe03-0000-1000-8000-00805f9b34fb"
+        ]
       },
-      "notes": "Meta Ray-Ban smart glasses with built-in camera and microphone"
-    },
-    {
-      "id": "meta_rayban_gen2",
-      "name": "Meta Ray-Ban (Gen 2)",
-      "manufacturer": "Meta",
-      "type": "smart_glasses",
-      "has_camera": true,
-      "has_microphone": true,
-      "threat_level": "high",
-      "identifiers": {
-        "name_patterns": [
-          "Ray-Ban | Meta",
-          "Ray-Ban Meta",
-          "Meta Ray-Ban"
-        ],
-        "manufacturer_prefixes": [],
-        "service_uuids": []
-      },
-      "notes": "Second generation Meta smart glasses with improved camera"
+      "false_positives": ["Meta Quest VR headsets share manufacturer IDs"],
+      "notes": "Meta smart glasses (Ray-Ban and Oakley brands). Primary detection via BLE manufacturer ID 0x01AB. Warning: May also match Meta Quest VR headsets."
     },
     {
       "id": "snapchat_spectacles",
@@ -61,10 +58,16 @@
           "Snap Spectacles",
           "SPECTACLES"
         ],
-        "manufacturer_prefixes": [],
+        "manufacturer_prefixes": [
+          "58:D5:0A"
+        ],
+        "ble_manufacturer_ids": [962],
+        "ble_manufacturer_ids_info": {
+          "962": "0x03C2 - Snap Inc."
+        },
         "service_uuids": []
       },
-      "notes": "Snapchat smart glasses with camera for recording"
+      "notes": "Snapchat Spectacles with camera. Verified manufacturer ID from Nearby Glasses project."
     },
     {
       "id": "amazon_echo_frames",
@@ -78,15 +81,21 @@
         "name_patterns": [
           "Echo Frames",
           "Amazon Frames",
-          "Alexa Frames"
+          "Alexa Frames",
+          "Carrera Smart"
         ],
         "manufacturer_prefixes": [
           "FC:65:DE",
-          "68:54:FD"
+          "68:54:FD",
+          "44:07:0B"
         ],
+        "ble_manufacturer_ids": [171],
+        "ble_manufacturer_ids_info": {
+          "171": "0x00AB - Amazon.com Services, Inc."
+        },
         "service_uuids": []
       },
-      "notes": "Amazon smart glasses with Alexa - microphone only, no camera"
+      "notes": "Amazon Echo Frames with Alexa - microphone only, no camera"
     },
     {
       "id": "bose_frames",
@@ -105,6 +114,10 @@
           "04:52:C7",
           "28:11:A5"
         ],
+        "ble_manufacturer_ids": [158],
+        "ble_manufacturer_ids_info": {
+          "158": "0x009E - Bose Corporation"
+        },
         "service_uuids": []
       },
       "notes": "Bose audio sunglasses - microphone for calls, no camera"
@@ -125,15 +138,20 @@
         ],
         "manufacturer_prefixes": [
           "F8:8F:CA",
-          "54:60:09"
+          "54:60:09",
+          "F4:F5:D8"
         ],
+        "ble_manufacturer_ids": [224],
+        "ble_manufacturer_ids_info": {
+          "224": "0x00E0 - Google"
+        },
         "service_uuids": []
       },
       "notes": "Google Glass smart glasses with camera"
     },
     {
       "id": "vuzix_blade",
-      "name": "Vuzix Blade",
+      "name": "Vuzix Blade/Shield",
       "manufacturer": "Vuzix",
       "type": "smart_glasses",
       "has_camera": true,
@@ -143,17 +161,22 @@
         "name_patterns": [
           "Vuzix",
           "Blade",
+          "Shield",
           "VUZIX"
         ],
         "manufacturer_prefixes": [],
+        "ble_manufacturer_ids": [1157],
+        "ble_manufacturer_ids_info": {
+          "1157": "0x0485 - Vuzix Corporation"
+        },
         "service_uuids": []
       },
-      "notes": "Vuzix Blade AR smart glasses with camera"
+      "notes": "Vuzix AR smart glasses with camera"
     },
     {
       "id": "tcl_rayneo",
-      "name": "TCL RayNeo",
-      "manufacturer": "TCL",
+      "name": "TCL RayNeo/Nreal",
+      "manufacturer": "TCL/Xreal",
       "type": "smart_glasses",
       "has_camera": true,
       "has_microphone": true,
@@ -162,12 +185,16 @@
         "name_patterns": [
           "RayNeo",
           "TCL Smart",
-          "RAYNEO"
+          "RAYNEO",
+          "Nreal",
+          "XREAL",
+          "Air 2"
         ],
         "manufacturer_prefixes": [],
+        "ble_manufacturer_ids": [],
         "service_uuids": []
       },
-      "notes": "TCL RayNeo AR glasses"
+      "notes": "TCL RayNeo and Xreal AR glasses"
     },
     {
       "id": "xiaomi_smart_glasses",
@@ -187,9 +214,39 @@
           "64:CC:2E",
           "78:11:DC"
         ],
+        "ble_manufacturer_ids": [343],
+        "ble_manufacturer_ids_info": {
+          "343": "0x0157 - Xiaomi Inc."
+        },
         "service_uuids": []
       },
-      "notes": "Xiaomi smart glasses concept with camera"
+      "notes": "Xiaomi smart glasses with camera"
+    },
+    {
+      "id": "huawei_eyewear",
+      "name": "Huawei Eyewear",
+      "manufacturer": "Huawei",
+      "type": "smart_glasses",
+      "has_camera": false,
+      "has_microphone": true,
+      "threat_level": "medium",
+      "identifiers": {
+        "name_patterns": [
+          "Huawei Eyewear",
+          "HUAWEI-EYE",
+          "FreeBuds"
+        ],
+        "manufacturer_prefixes": [
+          "48:DB:50",
+          "94:E2:3C"
+        ],
+        "ble_manufacturer_ids": [637],
+        "ble_manufacturer_ids_info": {
+          "637": "0x027D - Huawei Technologies Co., Ltd."
+        },
+        "service_uuids": []
+      },
+      "notes": "Huawei smart glasses with microphone"
     },
     {
       "id": "insta360_go",
@@ -204,12 +261,16 @@
           "Insta360",
           "GO 3",
           "GO 2",
+          "GO3",
           "INSTA360"
         ],
         "manufacturer_prefixes": [],
-        "service_uuids": []
+        "ble_manufacturer_ids": [],
+        "service_uuids": [
+          "0000ffe0-0000-1000-8000-00805f9b34fb"
+        ]
       },
-      "notes": "Tiny wearable/mountable camera"
+      "notes": "Tiny wearable/mountable camera, can be worn as pendant"
     },
     {
       "id": "gopro",
@@ -227,17 +288,23 @@
         ],
         "manufacturer_prefixes": [
           "D4:D9:19",
-          "24:A0:74"
+          "24:A0:74",
+          "C4:CB:6B"
         ],
+        "ble_manufacturer_ids": [654],
+        "ble_manufacturer_ids_info": {
+          "654": "0x028E - GoPro, Inc."
+        },
         "service_uuids": [
-          "0000fea6-0000-1000-8000-00805f9b34fb"
+          "0000fea6-0000-1000-8000-00805f9b34fb",
+          "b5f90001-aa8d-11e3-9046-0002a5d5c51b"
         ]
       },
       "notes": "GoPro action cameras"
     },
     {
       "id": "dji_action",
-      "name": "DJI Action Camera",
+      "name": "DJI Action/Osmo Camera",
       "manufacturer": "DJI",
       "type": "action_camera",
       "has_camera": true,
@@ -247,36 +314,24 @@
         "name_patterns": [
           "DJI",
           "Osmo",
-          "Action"
+          "Action",
+          "Pocket"
         ],
         "manufacturer_prefixes": [
-          "60:60:1F"
+          "60:60:1F",
+          "34:D2:62"
         ],
+        "ble_manufacturer_ids": [706],
+        "ble_manufacturer_ids_info": {
+          "706": "0x02C2 - Shenzhen DJI Technology Co., Ltd."
+        },
         "service_uuids": []
       },
-      "notes": "DJI action cameras and Osmo devices"
-    },
-    {
-      "id": "ring_doorbell",
-      "name": "Ring Doorbell/Camera",
-      "manufacturer": "Ring/Amazon",
-      "type": "security_camera",
-      "has_camera": true,
-      "has_microphone": true,
-      "threat_level": "low",
-      "identifiers": {
-        "name_patterns": [
-          "Ring",
-          "Ring-"
-        ],
-        "manufacturer_prefixes": [],
-        "service_uuids": []
-      },
-      "notes": "Ring doorbell and security cameras"
+      "notes": "DJI action cameras and Osmo Pocket devices"
     },
     {
       "id": "brilliant_monocle",
-      "name": "Brilliant Monocle",
+      "name": "Brilliant Monocle/Frame",
       "manufacturer": "Brilliant Labs",
       "type": "smart_glasses",
       "has_camera": true,
@@ -285,10 +340,14 @@
       "identifiers": {
         "name_patterns": [
           "Monocle",
-          "Brilliant"
+          "Brilliant",
+          "Frame"
         ],
         "manufacturer_prefixes": [],
-        "service_uuids": []
+        "ble_manufacturer_ids": [],
+        "service_uuids": [
+          "7a230001-5475-a6a4-654c-8431b6ad49c4"
+        ]
       },
       "notes": "AR monocle with camera capability"
     },
@@ -303,12 +362,70 @@
       "identifiers": {
         "name_patterns": [
           "Even Realities",
-          "G1"
+          "G1",
+          "ER-G1"
         ],
         "manufacturer_prefixes": [],
+        "ble_manufacturer_ids": [],
         "service_uuids": []
       },
       "notes": "Even Realities G1 AI glasses - no camera, has microphone"
+    },
+    {
+      "id": "solos_smartglasses",
+      "name": "Solos Smart Glasses",
+      "manufacturer": "Solos",
+      "type": "smart_glasses",
+      "has_camera": true,
+      "has_microphone": true,
+      "threat_level": "high",
+      "identifiers": {
+        "name_patterns": [
+          "Solos",
+          "AirGo"
+        ],
+        "manufacturer_prefixes": [],
+        "ble_manufacturer_ids": [],
+        "service_uuids": []
+      },
+      "notes": "Solos AirGo smart glasses with optional camera"
+    },
+    {
+      "id": "envision_glasses",
+      "name": "Envision Glasses",
+      "manufacturer": "Envision",
+      "type": "smart_glasses",
+      "has_camera": true,
+      "has_microphone": true,
+      "threat_level": "high",
+      "identifiers": {
+        "name_patterns": [
+          "Envision"
+        ],
+        "manufacturer_prefixes": [],
+        "ble_manufacturer_ids": [],
+        "service_uuids": []
+      },
+      "notes": "Envision AI-powered glasses for accessibility"
+    },
+    {
+      "id": "orcam_myeye",
+      "name": "OrCam MyEye",
+      "manufacturer": "OrCam",
+      "type": "wearable_camera",
+      "has_camera": true,
+      "has_microphone": true,
+      "threat_level": "medium",
+      "identifiers": {
+        "name_patterns": [
+          "OrCam",
+          "MyEye"
+        ],
+        "manufacturer_prefixes": [],
+        "ble_manufacturer_ids": [],
+        "service_uuids": []
+      },
+      "notes": "OrCam wearable camera device for accessibility"
     }
   ],
   "threat_levels": {
@@ -327,5 +444,38 @@
       "color": "#28a745",
       "alert": false
     }
+  },
+  "ble_service_uuids": {
+    "description": "Common BLE service UUIDs that may indicate recording capability",
+    "camera_services": [
+      {
+        "uuid": "0000ffe0-0000-1000-8000-00805f9b34fb",
+        "description": "Common camera control service"
+      },
+      {
+        "uuid": "0000fea6-0000-1000-8000-00805f9b34fb",
+        "description": "GoPro camera service"
+      }
+    ],
+    "audio_services": [
+      {
+        "uuid": "0000110a-0000-1000-8000-00805f9b34fb",
+        "description": "A2DP Audio Source"
+      },
+      {
+        "uuid": "0000110b-0000-1000-8000-00805f9b34fb",
+        "description": "A2DP Audio Sink"
+      },
+      {
+        "uuid": "0000111e-0000-1000-8000-00805f9b34fb",
+        "description": "Hands-Free Profile"
+      }
+    ]
+  },
+  "contribution_info": {
+    "how_to_contribute": "Submit new device signatures via GitHub pull request or issue",
+    "required_fields": ["name", "manufacturer", "type", "has_camera", "has_microphone"],
+    "preferred_fields": ["ble_manufacturer_ids", "manufacturer_prefixes", "service_uuids"],
+    "verification": "Signatures should be verified with actual hardware when possible"
   }
 }
