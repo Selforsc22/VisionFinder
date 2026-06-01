@@ -77,11 +77,37 @@ class DeviceLogger:
             )
         """)
 
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS dwell_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                device_address TEXT NOT NULL,
+                session_start TIMESTAMP NOT NULL,
+                session_end TIMESTAMP,
+                total_dwell_seconds INTEGER DEFAULT 0,
+                is_threat BOOLEAN DEFAULT FALSE,
+                matched_device TEXT
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS pattern_analysis (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                device_address TEXT NOT NULL,
+                hour_of_day INTEGER,
+                day_of_week INTEGER,
+                detection_count INTEGER DEFAULT 1,
+                avg_dwell_seconds REAL DEFAULT 0,
+                last_updated TIMESTAMP
+            )
+        """)
+
         # Create indexes
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_devices_address ON devices(address)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_detections_address ON detections(device_address)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_detections_timestamp ON detections(timestamp)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_alerts_timestamp ON alerts(timestamp)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_dwell_device ON dwell_sessions(device_address)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_pattern_device ON pattern_analysis(device_address)")
 
         conn.commit()
         conn.close()
@@ -370,5 +396,221 @@ class DeviceLogger:
             conn.commit()
             logger.info(f"Cleared {deleted} old detection records")
             return deleted
+        finally:
+            conn.close()
+
+    def start_dwell_session(self, device: DetectedDevice):
+        """Start tracking a dwell session for a device"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("""
+                INSERT INTO dwell_sessions (device_address, session_start, is_threat, matched_device)
+                VALUES (?, ?, ?, ?)
+            """, (
+                device.address,
+                datetime.now().isoformat(),
+                device.is_potential_threat,
+                device.matched_signature.name if device.matched_signature else None
+            ))
+            conn.commit()
+            return cursor.lastrowid
+        finally:
+            conn.close()
+
+    def end_dwell_session(self, device_address: str):
+        """End the most recent dwell session for a device"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("""
+                SELECT id, session_start FROM dwell_sessions
+                WHERE device_address = ? AND session_end IS NULL
+                ORDER BY session_start DESC LIMIT 1
+            """, (device_address,))
+            result = cursor.fetchone()
+
+            if result:
+                session_id, start_str = result
+                start_time = datetime.fromisoformat(start_str)
+                end_time = datetime.now()
+                dwell_seconds = int((end_time - start_time).total_seconds())
+
+                cursor.execute("""
+                    UPDATE dwell_sessions
+                    SET session_end = ?, total_dwell_seconds = ?
+                    WHERE id = ?
+                """, (end_time.isoformat(), dwell_seconds, session_id))
+                conn.commit()
+
+                self._update_pattern_analysis(device_address, start_time, dwell_seconds, conn)
+                return dwell_seconds
+            return 0
+        finally:
+            conn.close()
+
+    def _update_pattern_analysis(self, device_address: str, detection_time: datetime,
+                                  dwell_seconds: int, conn: sqlite3.Connection):
+        """Update pattern analysis for a device"""
+        cursor = conn.cursor()
+        hour = detection_time.hour
+        day = detection_time.weekday()
+
+        cursor.execute("""
+            SELECT id, detection_count, avg_dwell_seconds FROM pattern_analysis
+            WHERE device_address = ? AND hour_of_day = ? AND day_of_week = ?
+        """, (device_address, hour, day))
+        result = cursor.fetchone()
+
+        if result:
+            record_id, count, avg_dwell = result
+            new_count = count + 1
+            new_avg = ((avg_dwell * count) + dwell_seconds) / new_count
+            cursor.execute("""
+                UPDATE pattern_analysis
+                SET detection_count = ?, avg_dwell_seconds = ?, last_updated = ?
+                WHERE id = ?
+            """, (new_count, new_avg, datetime.now().isoformat(), record_id))
+        else:
+            cursor.execute("""
+                INSERT INTO pattern_analysis
+                (device_address, hour_of_day, day_of_week, detection_count, avg_dwell_seconds, last_updated)
+                VALUES (?, ?, ?, 1, ?, ?)
+            """, (device_address, hour, day, dwell_seconds, datetime.now().isoformat()))
+
+        conn.commit()
+
+    def get_device_patterns(self, device_address: str) -> dict:
+        """Get pattern analysis for a specific device"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("""
+                SELECT hour_of_day, day_of_week, detection_count, avg_dwell_seconds
+                FROM pattern_analysis
+                WHERE device_address = ?
+                ORDER BY detection_count DESC
+            """, (device_address,))
+
+            patterns = cursor.fetchall()
+            hourly = [0] * 24
+            daily = [0] * 7
+
+            for hour, day, count, _ in patterns:
+                hourly[hour] += count
+                daily[day] += count
+
+            cursor.execute("""
+                SELECT COUNT(*), SUM(total_dwell_seconds), AVG(total_dwell_seconds)
+                FROM dwell_sessions
+                WHERE device_address = ? AND session_end IS NOT NULL
+            """, (device_address,))
+            sessions, total_dwell, avg_dwell = cursor.fetchone()
+
+            return {
+                'hourly_heatmap': hourly,
+                'daily_heatmap': daily,
+                'total_sessions': sessions or 0,
+                'total_dwell_seconds': total_dwell or 0,
+                'avg_dwell_seconds': round(avg_dwell or 0, 1),
+                'patterns': [{'hour': h, 'day': d, 'count': c, 'avg_dwell': a}
+                            for h, d, c, a in patterns]
+            }
+        finally:
+            conn.close()
+
+    def get_surveillance_report(self) -> dict:
+        """Generate a surveillance analysis report for all threat devices"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("""
+                SELECT d.address, d.name, d.matched_device, d.times_seen,
+                       COUNT(ds.id) as sessions,
+                       SUM(ds.total_dwell_seconds) as total_dwell,
+                       AVG(ds.total_dwell_seconds) as avg_dwell
+                FROM devices d
+                LEFT JOIN dwell_sessions ds ON d.address = ds.device_address
+                WHERE d.is_threat = 1
+                GROUP BY d.address
+                ORDER BY total_dwell DESC
+            """)
+
+            threats = []
+            for row in cursor.fetchall():
+                addr, name, matched, times_seen, sessions, total_dwell, avg_dwell = row
+                threats.append({
+                    'address': addr,
+                    'name': name,
+                    'matched_device': matched,
+                    'times_seen': times_seen,
+                    'sessions': sessions or 0,
+                    'total_dwell_seconds': total_dwell or 0,
+                    'avg_dwell_seconds': round(avg_dwell or 0, 1),
+                    'risk_score': self._calculate_risk_score(times_seen, sessions or 0, total_dwell or 0)
+                })
+
+            return {
+                'total_threats': len(threats),
+                'threats': threats,
+                'high_risk_count': sum(1 for t in threats if t['risk_score'] >= 70),
+                'generated_at': datetime.now().isoformat()
+            }
+        finally:
+            conn.close()
+
+    def _calculate_risk_score(self, times_seen: int, sessions: int, total_dwell: int) -> int:
+        """Calculate a risk score (0-100) based on surveillance patterns"""
+        score = 0
+        score += min(times_seen * 5, 30)
+        score += min(sessions * 10, 30)
+        score += min(total_dwell // 60, 40)
+        return min(score, 100)
+
+    def export_signatures(self, output_path: Optional[Path] = None) -> Path:
+        """Export detected threat signatures for community sharing"""
+        if output_path is None:
+            output_path = self.log_dir / "exported_signatures.json"
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("""
+                SELECT DISTINCT d.address, d.name, d.matched_device,
+                       GROUP_CONCAT(DISTINCT det.manufacturer_data) as mfr_data
+                FROM devices d
+                JOIN detections det ON d.address = det.device_address
+                WHERE d.is_threat = 1
+                GROUP BY d.address
+            """)
+
+            signatures = []
+            for addr, name, matched, mfr_data in cursor.fetchall():
+                mac_prefix = addr[:8] if addr else None
+                signatures.append({
+                    'mac_prefix': mac_prefix,
+                    'name_pattern': name.lower() if name else None,
+                    'matched_as': matched,
+                    'manufacturer_data_samples': mfr_data.split(',') if mfr_data else []
+                })
+
+            export_data = {
+                'version': '1.0',
+                'exported_at': datetime.now().isoformat(),
+                'signature_count': len(signatures),
+                'signatures': signatures,
+                'contribution_notes': 'Submit via GitHub PR to add to main database'
+            }
+
+            with open(output_path, 'w') as f:
+                json.dump(export_data, f, indent=2)
+
+            logger.info(f"Exported {len(signatures)} signatures to {output_path}")
+            return output_path
         finally:
             conn.close()
